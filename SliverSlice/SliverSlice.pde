@@ -1,38 +1,77 @@
 import java.util.*;
+import java.io.*;
 
 PImage src;
 PImage slice = new PImage();
 ArrayList<Slice> slices = new ArrayList<Slice>();
 Random generator = new Random();
+int sliceSize = 10;
 
 void setup() {
-  // Get your own damn source material.
-  src = loadImage("tumblr_mn49i4ZsLd1qz6f9yo1_1280.jpg");
+  File imageFile = getRandomJpgInDataFolder();
+  if(imageFile==null){
+    println("Need images in data folder.  Types allowed: .gif, .jpg, .tga, .png ");
+    return;
+  }
+  println("imageFile = " + imageFile.getAbsolutePath());
+  src = loadImage(imageFile.getName());
   size(src.width, src.height);
   image(src, 0, 0);
+  smooth();
 }
 
 void keyPressed() {
-  if (key == ' ') {
-    int r = (int) random(1000000000);
-    save("output/"+r+".tif");
-  }
+  //horiz
   if (key == 'h') {
-    sliceHorizontal(10);
+    sliceHorizontal(sliceSize);
   }
+  
+  //horiz rnd
   if (key == 'H') {
     sliceHorizontalRandom();
   }
+  
+  //vert
   if (key == 'v') {
-    sliceVertical(10);
+    sliceVertical(sliceSize);
   }
+  
+  //vert rnd
   if (key == 'V') {
     sliceVerticalRandom();
   }
+  
+  //crazyness
+  if (key == 'c') {
+    for(int i=0;i<10;i++){
+      if(random(10)<5)sliceHorizontal(sliceSize);
+      if(random(10)<5)sliceVertical(sliceSize);
+      if(random(10)<5)sliceHorizontalRandom();
+      if(random(10)<5)sliceVerticalRandom();
+    }
+  }
+  
+  //random sliceSize
+  if (key == 's') {
+    sliceSize = (int)random(2,50);
+  }
+  
+  //reset
+  if (key == 'r') {
+    image(src, 0, 0);
+  }
+  
+  //save
+  if (key == ' ') {
+    int r = (int) random(1000000000);
+    String outputName = "output/"+r+".tif";
+    save(outputName);
+    println("saved "+ outputName);
+  }
+  
 }
 
 void draw() {
-  smooth();
 }
 
 void sliceHorizontalRandom() {
@@ -138,4 +177,30 @@ void sliceHorizontal(int _size) {
   }
   slices.clear();
 }
+
+File getRandomJpgInDataFolder(){
+  FilenameFilter fnf = new FilenameFilter(){
+    public boolean accept(File f, String name){
+      return name.toLowerCase().endsWith(".gif") 
+             || name.toLowerCase().endsWith(".jpg")
+             || name.toLowerCase().endsWith(".tga")
+             || name.toLowerCase().endsWith(".png");
+    }
+  };
+
+  File dataFolder = new File(sketchPath+File.separator+"data");
+  if(!dataFolder.exists()){
+    println("create a data folder");
+    return null;
+  }
+  File[] imageFileArray = new File(sketchPath+File.separator+"data").listFiles(fnf);
+  println(imageFileArray.length + " images in data folder");
+  if(imageFileArray.length == 0){
+    return null;
+  }
+  File imageFile = imageFileArray[floor(random(0,imageFileArray.length))];
+  return imageFile;
+}
+
+
 
