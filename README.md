@@ -6,6 +6,9 @@ A seemingly pointless (awesome) bitmap slicing app for Processing that might com
 created by [the816](http://blog.the816.com/)
 
 updated by [jeremywen](http://jeremywentworth.com)
+### Example
+
+![http://jeremywentworth.com/worldanim.gif](http://jeremywentworth.com/worldanim.gif)
 
 ### How to Use
 1. Open sketch in processing and run it.
