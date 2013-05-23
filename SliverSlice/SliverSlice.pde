@@ -1,3 +1,6 @@
+// gif animation lib from: http://www.extrapixel.ch/processing/gifAnimation/
+// NOTE: don't set color opacity/alpha, or gif will all be black
+import gifAnimation.*;
 import java.util.*;
 import java.io.*;
 
@@ -6,72 +9,130 @@ PImage slice = new PImage();
 ArrayList<Slice> slices = new ArrayList<Slice>();
 Random generator = new Random();
 int sliceSize = 10;
+int gifFrames = 0;
+final int MAX_GIF_FRAMES = 20;
+boolean makingGif = false;
+GifMaker gifMaker;
+
 
 void setup() {
   File imageFile = getRandomJpgInDataFolder();
   if(imageFile==null){
-    println("Need images in data folder.  Types allowed: .gif, .jpg, .tga, .png ");
-    return;
-  }
-  println("imageFile = " + imageFile.getAbsolutePath());
-  src = loadImage(imageFile.getName());
-  size(src.width, src.height);
-  image(src, 0, 0);
-  smooth();
-}
-
-void keyPressed() {
-  //horiz
-  if (key == 'h') {
-    sliceHorizontal(sliceSize);
-  }
-  
-  //horiz rnd
-  if (key == 'H') {
-    sliceHorizontalRandom();
-  }
-  
-  //vert
-  if (key == 'v') {
-    sliceVertical(sliceSize);
-  }
-  
-  //vert rnd
-  if (key == 'V') {
-    sliceVerticalRandom();
-  }
-  
-  //crazyness
-  if (key == 'c') {
-    for(int i=0;i<10;i++){
-      if(random(10)<5)sliceHorizontal(sliceSize);
-      if(random(10)<5)sliceVertical(sliceSize);
-      if(random(10)<5)sliceHorizontalRandom();
-      if(random(10)<5)sliceVerticalRandom();
-    }
-  }
-  
-  //random sliceSize
-  if (key == 's') {
-    sliceSize = (int)random(2,50);
-  }
-  
-  //reset
-  if (key == 'r') {
+    println("No images in data folder.  Types allowed: .gif, .jpg, .tga, .png ");
+    size(600,600);
+    randomBoxes();
+    crazyness(10);
+  } else {
+    println("imageFile = " + imageFile.getAbsolutePath());
+    src = loadImage(imageFile.getName());
+    size(src.width, src.height);
     image(src, 0, 0);
+    loadPixels();
   }
-  
-  //save
-  if (key == ' ') {
-    int r = (int) random(1000000000);
-    String outputName = "output/"+r+".tif";
-    save(outputName);
-    println("saved "+ outputName);
-  }
-  
+  //smooth();
 }
 
 void draw() {
+  if(makingGif){
+    if(gifFrames<MAX_GIF_FRAMES){
+      gifMaker.setDelay(5);
+      gifMaker.addFrame();  
+      gifFrames++;
+      crazyness(5);
+    } else {
+      gifFrames = 0;
+      makingGif = false;
+      boolean saved = gifMaker.finish(); // write file
+      println("saved gif: " + saved);
+    }
+  }
+}
+
+void keyPressed() {
+  if (key == 'h') { sliceHorizontal(sliceSize); }
+  if (key == 'H') { sliceHorizontalRandom(); }
+  if (key == 'v') { sliceVertical(sliceSize); }
+  if (key == 'V') { sliceVerticalRandom(); }
+  if (key == 'c') { crazyness(10); }
+  if (key == 'b') { randomBoxes(); }
+  if (key == 'x') { randomBoxes(); crazyness(10); }
+  if (key == 'g') { makeGif(); }
+  if (key == 'r') { reset(); }
+  if (key == ' ') { saveOutput(); }
+}
+
+void makeGif(){
+  if(makingGif){
+    println("currently making a gif");
+    return;
+  }
+  frameRate(12);
+  int r = rndi(1000000000);
+  gifMaker = new GifMaker(this, "output/" + r + ".gif");
+  gifMaker.setRepeat(0);        // make it an "endless" animation
+//  gifMaker.setQuality(5);
+//  gifMaker.setTransparent(255);
+  makingGif = true;
+}
+
+void saveOutput(){
+  int r = rndi(1000000000);
+  String outputName = "output/"+r+".tif";
+  save(outputName);
+  println("saved "+ outputName);
+}
+
+void reset(){
+  image(src, 0, 0);
+}
+
+void randomBoxes(){
+   background(255);
+   noStroke();
+   int randomR = rndi(155);
+   int randomG = rndi(155);
+   int randomB = rndi(155);
+   for(int i=0;i<30;i++){
+     fill(randomR + rndi(100), randomG + rndi(100), randomB + rndi(100));
+     rect(random(width*0.5), random(height*0.5), random(width*0.7), random(height*0.7));
+   }  
+}
+
+int rndi(int max){
+  return (int)random(max);
+}
+
+void crazyness(int loops){
+  for(int i=0;i<loops;i++){
+    if(random(10)<5)sliceHorizontal(sliceSize);
+    if(random(10)<5)sliceVertical(sliceSize);
+    if(random(10)<5)sliceHorizontalRandom();
+    if(random(10)<5)sliceVerticalRandom();
+  }
+}
+
+File getRandomJpgInDataFolder(){
+  FilenameFilter fnf = new FilenameFilter(){
+    public boolean accept(File f, String name){
+      return name.toLowerCase().endsWith(".gif") 
+             || name.toLowerCase().endsWith(".jpg")
+             || name.toLowerCase().endsWith(".tga")
+             || name.toLowerCase().endsWith(".png");
+    }
+  };
+
+  File dataFolder = new File(sketchPath+File.separator+"data");
+  if(!dataFolder.exists()){
+    println("create a data folder");
+    return null;
+  }
+  File[] imageFileArray = new File(sketchPath+File.separator+"data").listFiles(fnf);
+  println(imageFileArray.length + " images in data folder");
+  if(imageFileArray.length == 0){
+    return null;
+  }
+  File imageFile = imageFileArray[floor(random(0,imageFileArray.length))];
+  return imageFile;
 }
 
 void sliceHorizontalRandom() {
@@ -113,7 +174,6 @@ void sliceVerticalRandom() {
   int i = 0;
   while (currentX < width) {
     Slice img = slices.get((int) random(slices.size()));
-    //Slice img = slices.get(i);
     image(img.img, currentX, 0, img.w, height);
     currentX += img.w;
     i++;
@@ -177,30 +237,5 @@ void sliceHorizontal(int _size) {
   }
   slices.clear();
 }
-
-File getRandomJpgInDataFolder(){
-  FilenameFilter fnf = new FilenameFilter(){
-    public boolean accept(File f, String name){
-      return name.toLowerCase().endsWith(".gif") 
-             || name.toLowerCase().endsWith(".jpg")
-             || name.toLowerCase().endsWith(".tga")
-             || name.toLowerCase().endsWith(".png");
-    }
-  };
-
-  File dataFolder = new File(sketchPath+File.separator+"data");
-  if(!dataFolder.exists()){
-    println("create a data folder");
-    return null;
-  }
-  File[] imageFileArray = new File(sketchPath+File.separator+"data").listFiles(fnf);
-  println(imageFileArray.length + " images in data folder");
-  if(imageFileArray.length == 0){
-    return null;
-  }
-  File imageFile = imageFileArray[floor(random(0,imageFileArray.length))];
-  return imageFile;
-}
-
 
 
